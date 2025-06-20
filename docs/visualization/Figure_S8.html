@@ -377,7 +377,240 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   
 
 </header><div class="cell">
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co"># Code for this figure included in Figure 2.</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="co">#Script used to make the figures used in supplementary figure S8</span></span>
+<span></span>
+<span><span class="co">#Libraries needed</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/enblacar/SCpubr/">SCpubr</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://satijalab.org/seurat">Seurat</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/stuart-lab/signac">Signac</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org">ggplot2</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org">dplyr</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">ComplexHeatmap</span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">UCell</span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/jokergoo/circlize">circlize</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co">#Set the directory to where you have your data or want to store your output</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/getwd.html">setwd</a></span><span class="op">(</span><span class="st">"/home/ipaassen/ATRT_sc_atlas/"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co">#Load seurat object and other datasets needed</span></span>
+<span><span class="va">ATRT</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html">readRDS</a></span><span class="op">(</span><span class="st">"/data/projects/p868_CRISPR-RNA_TP53-RB1/irene/231207_ATRT_multiome_EnrichmentUMAP_newclusters.RDS"</span><span class="op">)</span></span>
+<span><span class="va">motifs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html">readRDS</a></span><span class="op">(</span><span class="st">"motif_to_genesymbol.RDS"</span><span class="op">)</span> <span class="co">#To convert motif IDs to TF binding to it</span></span>
+<span><span class="va">gene_markers</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html">readRDS</a></span><span class="op">(</span><span class="st">"10X_v3_frozen_samples_normalized_TME_and_TB_annotated_integrated_with_metacell_mapping_reannotated_top100_markers.rds"</span><span class="op">)</span> <span class="co">#Marker genes as identified in analysis pipeline of the snRNA dataset</span></span>
+<span></span>
+<span><span class="co">#Define colour coding</span></span>
+<span><span class="va">subtype_colors</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"ATRT_SHH"</span> <span class="op">=</span> <span class="st">"#253A79"</span>, <span class="st">"ATRT_MYC"</span> <span class="op">=</span> <span class="st">"#056A37"</span>, <span class="st">"ATRT_TYR"</span> <span class="op">=</span> <span class="st">"#931A1D"</span>, <span class="st">"ecMRT_BrainMet"</span> <span class="op">=</span> <span class="st">"#10C663"</span><span class="op">)</span></span>
+<span><span class="va">idents_colors</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"SHH.unspecified"</span> <span class="op">=</span> <span class="st">"#A4C2D6"</span>,<span class="st">"CP.like"</span> <span class="op">=</span> <span class="st">"#be660e"</span>,<span class="st">"Cilia.like"</span> <span class="op">=</span> <span class="st">"#be0e0e"</span>,<span class="st">"OPC.like"</span> <span class="op">=</span> <span class="st">"#0435c8"</span>, </span>
+<span>                   <span class="st">"Rest"</span> <span class="op">=</span> <span class="st">"#84D3E5"</span>, <span class="st">'NPC.like'</span> <span class="op">=</span> <span class="st">"#0466c8"</span>,<span class="st">'Hypoxic'</span> <span class="op">=</span> <span class="st">"#2A7072"</span>,</span>
+<span>                   <span class="st">'Mesenchymal.like'</span> <span class="op">=</span> <span class="st">"#0ebe66"</span>,<span class="st">"IPC.like"</span> <span class="op">=</span> <span class="st">"#be920e"</span>, </span>
+<span>                   <span class="st">"MYC.TYR.unspecified"</span> <span class="op">=</span> <span class="st">"#D6A4A9"</span>, <span class="st">"RG.like"</span> <span class="op">=</span> <span class="st">"#0497c8"</span><span class="op">)</span></span>
+<span><span class="va">TF_colours</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"MYC.Mes"</span> <span class="op">=</span> <span class="st">"#024431"</span>, <span class="st">"SHH.OPC"</span> <span class="op">=</span>  <span class="st">"#211D5C"</span>, <span class="st">"SHH.NPC"</span> <span class="op">=</span> <span class="st">"#20428A"</span>, <span class="st">"TYR.cilia"</span> <span class="op">=</span> <span class="st">"#8C1730"</span>, <span class="st">"SHH.shared"</span> <span class="op">=</span> <span class="st">"#0078BB"</span><span class="op">)</span></span>
+<span></span>
+<span></span>
+<span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">############### Script for figures #######################</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span></span>
+<span></span>
+<span><span class="co">#Supplementary Figure 6, Panel A</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#Stacked barplot of identities represented ber patient sample of the snMultiome data</span></span>
+<span><span class="fu">do_BarPlot</span><span class="op">(</span><span class="va">ATRT</span>, split.by <span class="op">=</span> <span class="st">'sample1'</span>, group.by <span class="op">=</span> <span class="st">'Enrich.scores'</span>,colors.use <span class="op">=</span> <span class="va">idents_colors</span>, </span>
+<span>           position <span class="op">=</span> <span class="st">'fill'</span>, order <span class="op">=</span> <span class="cn">F</span><span class="op">)</span> </span>
+<span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">############## Calculation of Differential motif activity per mature-like cells vs. IPC-like cells #########################</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span></span>
+<span></span>
+<span><span class="co">#Settings for differenital motif activityt calling</span></span>
+<span><span class="va">ATRT</span> <span class="op">&lt;-</span> <span class="fu">SetIdent</span><span class="op">(</span><span class="va">ATRT</span>, value <span class="op">=</span> <span class="st">"Enrich.scores"</span><span class="op">)</span></span>
+<span><span class="fu">DefaultAssay</span><span class="op">(</span><span class="va">ATRT</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="st">'chromvar'</span></span>
+<span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">######### Supplementary Figure S8, Panel B #############</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span></span>
+<span><span class="co">#Mesenchymal-like</span></span>
+<span><span class="va">Mesenchymal.TFs</span> <span class="op">&lt;-</span> <span class="fu">FindMarkers</span><span class="op">(</span></span>
+<span>  <span class="va">ATRT</span>,</span>
+<span>  ident.1 <span class="op">=</span> <span class="st">"IPC.like"</span>,</span>
+<span>  ident.2 <span class="op">=</span> <span class="st">"Mesenchymal.like"</span>,</span>
+<span>  logfc.threshold <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  min.pct <span class="op">=</span> <span class="fl">0.1</span>,</span>
+<span>  only.pos <span class="op">=</span> <span class="cn">F</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co">#Make vulcanoplot of p-value and log2FC</span></span>
+<span><span class="fu">SCpubr</span><span class="fu">::</span><span class="fu">do_VolcanoPlot</span><span class="op">(</span>sample <span class="op">=</span> <span class="va">ATRT</span>,</span>
+<span>                       de_genes <span class="op">=</span> <span class="va">Mesenchymal.TFs</span>,</span>
+<span>                       pval_cutoff <span class="op">=</span> <span class="fl">1e-40</span>,</span>
+<span>                       FC_cutoff <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>                       plot.title <span class="op">=</span> <span class="st">"IPC.vs.Mesenchymal"</span>,add_gene_tags <span class="op">=</span> <span class="cn">F</span><span class="op">)</span> <span class="op">+</span> <span class="fu">scale_color_brewer</span><span class="op">(</span>palette <span class="op">=</span> <span class="st">"OrRd"</span>, direction <span class="op">=</span> <span class="op">-</span><span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span></span>
+<span><span class="co">#Filter for highest MYC marker genes</span></span>
+<span><span class="va">Mesenchymal.specific</span> <span class="op">&lt;-</span><span class="va">Mesenchymal.TFs</span><span class="op">[</span><span class="va">Mesenchymal.TFs</span><span class="op">$</span><span class="va">avg_log2FC</span> <span class="op">&lt;</span> <span class="op">-</span><span class="fl">5</span> <span class="op">&amp;</span> <span class="va">Mesenchymal.TFs</span><span class="op">$</span><span class="va">p_val_adj</span> <span class="op">&lt;</span> <span class="fl">1e-40</span>,<span class="op">]</span></span>
+<span><span class="va">Mesenchymal.specific</span><span class="op">$</span><span class="va">gene</span> <span class="op">&lt;-</span> <span class="va">motifs</span><span class="op">$</span><span class="va">symbol</span><span class="op">[</span><span class="va">motifs</span><span class="op">$</span><span class="va">motif</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html">rownames</a></span><span class="op">(</span><span class="va">Mesenchymal.specific</span><span class="op">)</span><span class="op">]</span></span>
+<span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">######### Supplementary Figure S8, Panel C #############</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span></span>
+<span><span class="co">#NPC-like</span></span>
+<span><span class="va">NPC.TFs</span> <span class="op">&lt;-</span> <span class="fu">FindMarkers</span><span class="op">(</span></span>
+<span>  <span class="va">ATRT</span>,</span>
+<span>  ident.1 <span class="op">=</span> <span class="st">"IPC.like"</span>,</span>
+<span>  ident.2 <span class="op">=</span> <span class="st">"NPC.like"</span>,</span>
+<span>  logfc.threshold <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  min.pct <span class="op">=</span> <span class="fl">0.1</span>,</span>
+<span>  only.pos <span class="op">=</span> <span class="cn">F</span>,subset.ident <span class="op">=</span> <span class="va">SHH</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co">#Make vulcanoplot of p-value and log2FC</span></span>
+<span><span class="fu">SCpubr</span><span class="fu">::</span><span class="fu">do_VolcanoPlot</span><span class="op">(</span>sample <span class="op">=</span> <span class="va">ATRT</span>,</span>
+<span>                       de_genes <span class="op">=</span> <span class="va">NPC.TFs</span>,</span>
+<span>                       pval_cutoff <span class="op">=</span> <span class="fl">1e-70</span>,</span>
+<span>                       FC_cutoff <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>                       plot.title <span class="op">=</span> <span class="st">"ATRT-SHH: IPC.vs.NPC"</span>,add_gene_tags <span class="op">=</span> <span class="cn">F</span><span class="op">)</span> <span class="op">+</span> <span class="fu">scale_color_brewer</span><span class="op">(</span>palette <span class="op">=</span> <span class="st">"OrRd"</span>, direction <span class="op">=</span> <span class="op">-</span><span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span></span>
+<span><span class="co">#Filter for highest SHH marker genes</span></span>
+<span><span class="va">NPC.specific</span> <span class="op">&lt;-</span><span class="va">NPC.TFs</span><span class="op">[</span><span class="va">NPC.TFs</span><span class="op">$</span><span class="va">avg_log2FC</span> <span class="op">&lt;</span> <span class="op">-</span><span class="fl">1</span> <span class="op">&amp;</span> <span class="va">NPC.TFs</span><span class="op">$</span><span class="va">p_val_adj</span> <span class="op">&lt;</span> <span class="fl">1e-70</span>,<span class="op">]</span></span>
+<span><span class="va">NPC.specific</span><span class="op">$</span><span class="va">gene</span> <span class="op">&lt;-</span> <span class="va">motifs</span><span class="op">$</span><span class="va">symbol</span><span class="op">[</span><span class="va">motifs</span><span class="op">$</span><span class="va">motif</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html">rownames</a></span><span class="op">(</span><span class="va">NPC.specific</span><span class="op">)</span><span class="op">]</span></span>
+<span></span>
+<span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">######### Supplementary Figure S8, Panel D #############</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span></span>
+<span><span class="co"># OPC-like vs IPC. like</span></span>
+<span><span class="va">OPC.TFs</span> <span class="op">&lt;-</span> <span class="fu">FindMarkers</span><span class="op">(</span></span>
+<span>  <span class="va">ATRT</span>,</span>
+<span>  ident.1 <span class="op">=</span> <span class="st">"IPC.like"</span>,</span>
+<span>  ident.2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"OPC.like"</span><span class="op">)</span>,</span>
+<span>  logfc.threshold <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  min.pct <span class="op">=</span> <span class="fl">0.1</span>,</span>
+<span>  only.pos <span class="op">=</span> <span class="cn">F</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Make vulcanoplot of p-value and log2FC</span></span>
+<span><span class="fu">SCpubr</span><span class="fu">::</span><span class="fu">do_VolcanoPlot</span><span class="op">(</span>sample <span class="op">=</span> <span class="va">ATRT</span>,</span>
+<span>                       de_genes <span class="op">=</span> <span class="va">OPC.TFs</span>,</span>
+<span>                       pval_cutoff <span class="op">=</span> <span class="fl">1e-10</span>,</span>
+<span>                       FC_cutoff <span class="op">=</span><span class="fl">0.5</span>,</span>
+<span>                       plot.title <span class="op">=</span> <span class="st">"ATRT-SHH: IPC.vs.NPC+OPC"</span>,add_gene_tags <span class="op">=</span> <span class="cn">F</span><span class="op">)</span> <span class="op">+</span> <span class="fu">scale_color_brewer</span><span class="op">(</span>palette <span class="op">=</span> <span class="st">"OrRd"</span>, direction <span class="op">=</span> <span class="op">-</span><span class="fl">1</span><span class="op">)</span></span>
+<span></span>
+<span></span>
+<span><span class="co">#Filter for highest SHH marker genes</span></span>
+<span><span class="va">OPC.specific</span> <span class="op">&lt;-</span><span class="va">OPC.TFs</span><span class="op">[</span><span class="va">OPC.TFs</span><span class="op">$</span><span class="va">avg_log2FC</span> <span class="op">&lt;</span> <span class="op">-</span><span class="fl">0.5</span> <span class="op">&amp;</span> <span class="va">OPC.TFs</span><span class="op">$</span><span class="va">p_val_adj</span> <span class="op">&lt;</span> <span class="fl">1e-10</span>,<span class="op">]</span></span>
+<span><span class="va">OPC.specific</span><span class="op">$</span><span class="va">gene</span> <span class="op">&lt;-</span> <span class="va">motifs</span><span class="op">$</span><span class="va">symbol</span><span class="op">[</span><span class="va">motifs</span><span class="op">$</span><span class="va">motif</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html">rownames</a></span><span class="op">(</span><span class="va">OPC.specific</span><span class="op">)</span><span class="op">]</span></span>
+<span></span>
+<span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">######### Supplementary Figure S8, Panel E #############</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span></span>
+<span><span class="co">#Motifs against NPC and OPC both together</span></span>
+<span><span class="va">OPC.and.NPC</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>NPC.like <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html">rownames</a></span><span class="op">(</span><span class="va">NPC.specific</span><span class="op">)</span>, OPC.like <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html">rownames</a></span><span class="op">(</span><span class="va">OPC.specific</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">OPC.and.NPC.motifs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sets.html">intersect</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html">rownames</a></span><span class="op">(</span><span class="va">NPC.specific</span><span class="op">)</span>,<span class="fu"><a href="https://rdrr.io/r/base/colnames.html">rownames</a></span><span class="op">(</span><span class="va">OPC.specific</span><span class="op">)</span><span class="op">)</span> <span class="co">#Subset for motifs found in both</span></span>
+<span></span>
+<span><span class="va">overlap_genes</span> <span class="op">&lt;-</span> <span class="va">motifs</span><span class="op">$</span><span class="va">symbol</span><span class="op">[</span><span class="va">motifs</span><span class="op">$</span><span class="va">motif</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">OPC.and.NPC.motifs</span><span class="op">]</span> <span class="co">#Get TFs behind motif ID</span></span>
+<span><span class="va">overlap_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html">gsub</a></span><span class="op">(</span><span class="st">"\\s*\\([^\\)]+\\)"</span>,<span class="st">""</span>,<span class="va">overlap_genes</span><span class="op">)</span></span>
+<span><span class="va">Group_order</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="st">"Enrich.scores"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"IPC.like"</span>,<span class="st">"RG.like"</span> ,<span class="st">"NPC.like"</span>,<span class="st">"OPC.like"</span>,<span class="st">"SHH.unspecified"</span>,<span class="st">"Mesenchymal.like"</span>,<span class="st">"CP.like"</span>,<span class="st">"Cilia.like"</span>,<span class="st">"MYC.TYR.unspecified"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">######### Supplementary Figure S8, Panel F #############</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span></span>
+<span><span class="co"># Expression Heatmap of the chromvar scores</span></span>
+<span><span class="fu">do_ExpressionHeatmap</span><span class="op">(</span><span class="va">ATRT</span>, features <span class="op">=</span> <span class="va">OPC.and.NPC.motifs</span>, groups.order <span class="op">=</span> <span class="va">Group_order</span>,axis.text.x.angle <span class="op">=</span> <span class="fl">90</span>,</span>
+<span>                     group.by <span class="op">=</span> <span class="st">"Enrich.scores"</span>, assay <span class="op">=</span> <span class="st">"chromvar"</span>, enforce_symmetry <span class="op">=</span> <span class="cn">T</span>, features.order <span class="op">=</span> <span class="va">OPC.and.NPC.motifs</span>, </span>
+<span>                     diverging.palette <span class="op">=</span> <span class="st">"PuOr"</span>,legend.title <span class="op">=</span> <span class="st">"Chromvar score"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Expression heatmap of the TFs underlying the motif IDs</span></span>
+<span><span class="fu">do_ExpressionHeatmap</span><span class="op">(</span><span class="va">ATRT</span>, features <span class="op">=</span> <span class="va">overlap_genes</span>, features.order <span class="op">=</span> <span class="va">overlap_genes</span>, groups.order <span class="op">=</span> <span class="va">Group_order</span>,axis.text.x.angle <span class="op">=</span> <span class="fl">90</span>,</span>
+<span>                     group.by <span class="op">=</span> <span class="st">"Enrich.scores"</span>, assay <span class="op">=</span> <span class="st">"RNA"</span>,slot <span class="op">=</span> <span class="st">"scale.data"</span>, enforce_symmetry <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></span>
+<span></span>
+<span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">## Supplementary Figure S8 Panel G</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span></span>
+<span><span class="co">#Make enrichUMAP of RFX3 gene expression</span></span>
+<span><span class="fu">do_FeaturePlot</span><span class="op">(</span><span class="va">ATRT</span>, features <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"RFX4"</span><span class="op">)</span>, reduction <span class="op">=</span> <span class="st">"umap"</span>, </span>
+<span>               assay <span class="op">=</span> <span class="st">'RNA'</span>, order <span class="op">=</span> <span class="cn">T</span>, legend.title <span class="op">=</span> <span class="st">"LMX1A expression"</span>,</span>
+<span>               legend.position <span class="op">=</span> <span class="st">"bottom"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">## Supplementary Figure S8 Panel H</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span></span>
+<span><span class="co">#RFX4 is motif ID MA0799.1</span></span>
+<span><span class="fu">do_FeaturePlot</span><span class="op">(</span><span class="va">ATRT</span>, features <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"MA0799.1"</span><span class="op">)</span>, reduction <span class="op">=</span> <span class="st">"umap"</span>, assay <span class="op">=</span> <span class="st">'chromvar'</span>, order <span class="op">=</span> <span class="cn">T</span>, enforce_symmetry <span class="op">=</span> <span class="cn">F</span>,</span>
+<span>               legend.title <span class="op">=</span> <span class="st">"LMX1A chromvar score"</span>,</span>
+<span>               label.size <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>               use_viridis <span class="op">=</span> <span class="cn">T</span>,</span>
+<span>               viridis.palette <span class="op">=</span> <span class="st">"inferno"</span>,</span>
+<span>               viridis.direction <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>,</span>
+<span>               min.cutoff <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>               legend.position <span class="op">=</span> <span class="st">"bottom"</span><span class="op">)</span></span>
+<span></span>
+<span></span>
+<span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">######### Supplementary Figure 6 Panel I #############</span></span>
+<span><span class="co">#</span></span>
+<span><span class="co">#</span></span>
+<span></span>
+<span></span>
+<span><span class="co">#Cilia-like</span></span>
+<span><span class="va">Cilia.TFs</span> <span class="op">&lt;-</span> <span class="fu">FindMarkers</span><span class="op">(</span></span>
+<span>  <span class="va">ATRT</span>,</span>
+<span>  ident.1 <span class="op">=</span> <span class="st">"IPC.like"</span>,</span>
+<span>  ident.2 <span class="op">=</span> <span class="st">"Cilia.like"</span>,</span>
+<span>  logfc.threshold <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  min.pct <span class="op">=</span> <span class="fl">0.1</span>,</span>
+<span>  only.pos <span class="op">=</span> <span class="cn">F</span><span class="op">)</span></span>
+<span></span>
+<span></span>
+<span><span class="co">#Filter for highest TYR marker genes</span></span>
+<span><span class="va">Cilia.specific</span> <span class="op">&lt;-</span><span class="va">Cilia.TFs</span><span class="op">[</span><span class="va">Cilia.TFs</span><span class="op">$</span><span class="va">avg_log2FC</span> <span class="op">&lt;</span> <span class="op">-</span><span class="fl">1</span> <span class="op">&amp;</span> <span class="va">Cilia.TFs</span><span class="op">$</span><span class="va">p_val_adj</span> <span class="op">&lt;</span> <span class="fl">1e-40</span>,<span class="op">]</span></span>
+<span><span class="va">Cilia.genes</span> <span class="op">&lt;-</span> <span class="va">motifs</span><span class="op">$</span><span class="va">symbol</span><span class="op">[</span><span class="va">motifs</span><span class="op">$</span><span class="va">motif</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html">rownames</a></span><span class="op">(</span><span class="va">Cilia.specific</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">Cilia.specific</span><span class="op">$</span><span class="va">gene</span> <span class="op">&lt;-</span> <span class="va">motifs</span><span class="op">$</span><span class="va">symbol</span><span class="op">[</span><span class="va">motifs</span><span class="op">$</span><span class="va">motif</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html">rownames</a></span><span class="op">(</span><span class="va">Cilia.specific</span><span class="op">)</span><span class="op">]</span></span>
+<span></span>
+<span><span class="va">order_genes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html">rownames</a></span><span class="op">(</span><span class="va">Cilia.specific</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">TYR_motifs</span> <span class="op">&lt;-</span> <span class="va">motifs</span><span class="op">[</span><span class="va">motifs</span><span class="op">$</span><span class="va">motif</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="va">order_genes</span>,<span class="op">]</span></span>
+<span><span class="va">TYR_motifs</span><span class="op">$</span><span class="va">symbol</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html">gsub</a></span><span class="op">(</span><span class="st">"\\s*\\([^\\)]+\\)"</span>,<span class="st">""</span>,<span class="va">TYR_motifs</span><span class="op">$</span><span class="va">symbol</span><span class="op">)</span></span>
+<span><span class="va">Group_order</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span><span class="st">"Enrich.scores"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"IPC.like"</span>,<span class="st">"RG.like"</span> ,<span class="st">"NPC.like"</span>,<span class="st">"OPC.like"</span>,<span class="st">"SHH.unspecified"</span>,<span class="st">"Mesenchymal.like"</span>,<span class="st">"CP.like"</span>,<span class="st">"Cilia.like"</span>,<span class="st">"MYC.TYR.unspecified"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co">#heatmap on chromvar scores</span></span>
+<span><span class="fu">do_ExpressionHeatmap</span><span class="op">(</span><span class="va">ATRT</span>, features <span class="op">=</span> <span class="va">TYR_motifs</span><span class="op">$</span><span class="va">motif</span>, groups.order <span class="op">=</span> <span class="va">Group_order</span>,</span>
+<span>                     group.by <span class="op">=</span> <span class="st">"Enrich.scores"</span>, assay <span class="op">=</span> <span class="st">"chromvar"</span>, enforce_symmetry <span class="op">=</span> <span class="cn">T</span>, features.order <span class="op">=</span> <span class="va">TYR_motifs</span><span class="op">$</span><span class="va">motif</span>, </span>
+<span>                     diverging.palette <span class="op">=</span> <span class="st">"PuOr"</span>,legend.title <span class="op">=</span> <span class="st">"Chromvar score"</span>,axis.text.x.angle <span class="op">=</span> <span class="fl">90</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co">#heatmap on TF expression </span></span>
+<span><span class="fu">do_ExpressionHeatmap</span><span class="op">(</span><span class="va">ATRT</span>, features <span class="op">=</span> <span class="va">TYR_motifs</span><span class="op">$</span><span class="va">symbol</span>, features.order <span class="op">=</span> <span class="va">TYR_motifs</span><span class="op">$</span><span class="va">symbol</span>, groups.order <span class="op">=</span> <span class="va">Group_order</span>,</span>
+<span>                     group.by <span class="op">=</span> <span class="st">"Enrich.scores"</span>, assay <span class="op">=</span> <span class="st">"RNA"</span>,slot <span class="op">=</span> <span class="st">"scale.data"</span>, enforce_symmetry <span class="op">=</span> <span class="cn">T</span>, axis.text.x.angle <span class="op">=</span> <span class="fl">90</span><span class="op">)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 
 
