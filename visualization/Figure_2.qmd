@@ -121,11 +121,6 @@ TF_colours <- c("MYC.Mes" = "#024431", "SHH.OPC" =  "#211D5C", "SHH.NPC" = "#204
 #UMAP based on enrichment of the different cells on their enrichment scores for the different identities as identified during supervised annotation of the snRNAseq dataset
 do_DimPlot(ATRT, reduction = "umap", group.by = "Enrich.scores",colors.use = idents_colors, plot.axes = F) #enrichUMAP
 
-#Supplementary Figure 6, Panel A
-#
-#Stacked barplot of identities represented ber patient sample of the snMultiome data
-do_BarPlot(ATRT, split.by = 'sample1', group.by = 'Enrich.scores',colors.use = idents_colors, 
-           position = 'fill', order = F) 
 
 #
 #
@@ -140,7 +135,7 @@ DefaultAssay(ATRT) <- 'chromvar'
 
 #
 #
-######### Main Figure 2 Panel F and Supplementary Figure 6 Panel F #############
+######### Main Figure 2 Panel F  #############
 #
 #
 
@@ -176,20 +171,6 @@ TYR_motifs <- motifs[motifs$motif %in% order_genes,]
 TYR_motifs$symbol <- gsub("\\s*\\([^\\)]+\\)","",TYR_motifs$symbol)
 Group_order <- list("Enrich.scores" = c("IPC.like","RG.like" ,"NPC.like","OPC.like","SHH.unspecified","Mesenchymal.like","CP.like","Cilia.like","MYC.TYR.unspecified"))
 
-#
-######### Supplementary Figure 6 F #################
-#
-
-#heatmap on chromvar scores
-do_ExpressionHeatmap(ATRT, features = TYR_motifs$motif, groups.order = Group_order,
-                     group.by = "Enrich.scores", assay = "chromvar", enforce_symmetry = T, features.order = TYR_motifs$motif, 
-                     diverging.palette = "PuOr",legend.title = "Chromvar score",axis.text.x.angle = 90)
-
-#heatmap on TF expression 
-do_ExpressionHeatmap(ATRT, features = TYR_motifs$symbol, features.order = TYR_motifs$symbol, groups.order = Group_order,
-                     group.by = "Enrich.scores", assay = "RNA",slot = "scale.data", enforce_symmetry = T, axis.text.x.angle = 90)
-
-
 
 
 #Plot average expression of the different cluster for 2 most specific TYR genes: OTX2, LMX1A and LMX1B 
@@ -206,116 +187,7 @@ TYR_Av  <- gather(TYR_Av, key = "Cell.identity", value = "RNA_Log", -Gene)
 ggplot(TYR_Av, aes(x=Cell.identity, y = RNA_Log, fill = Cell.identity)) + geom_bar(stat = "identity") + facet_wrap(~Gene) + scale_fill_brewer(palette = "Reds") + theme_bw()
 
 
-#
-#
-######### Supplementary Figure 6, Panel C #############
-#
-#
-
-#NPC-like
-NPC.TFs <- FindMarkers(
-  ATRT,
-  ident.1 = "IPC.like",
-  ident.2 = "NPC.like",
-  logfc.threshold = 0,
-  min.pct = 0.1,
-  only.pos = F,subset.ident = SHH)
-
-#Make vulcanoplot of p-value and log2FC
-SCpubr::do_VolcanoPlot(sample = ATRT,
-                       de_genes = NPC.TFs,
-                       pval_cutoff = 1e-70,
-                       FC_cutoff = 1,
-                       plot.title = "ATRT-SHH: IPC.vs.NPC",add_gene_tags = F) + scale_color_brewer(palette = "OrRd", direction = -1)
-
-
-#Filter for highest SHH marker genes
-NPC.specific <-NPC.TFs[NPC.TFs$avg_log2FC < -1 & NPC.TFs$p_val_adj < 1e-70,]
-NPC.specific$gene <- motifs$symbol[motifs$motif %in% rownames(NPC.specific)]
-
-
-#
-#
-######### Supplementary Figure 6, Panel D #############
-#
-#
-
-# OPC-like vs IPC. like
-OPC.TFs <- FindMarkers(
-  ATRT,
-  ident.1 = "IPC.like",
-  ident.2 = c("OPC.like"),
-  logfc.threshold = 0,
-  min.pct = 0.1,
-  only.pos = F)
-
-# Make vulcanoplot of p-value and log2FC
-SCpubr::do_VolcanoPlot(sample = ATRT,
-                       de_genes = OPC.TFs,
-                       pval_cutoff = 1e-10,
-                       FC_cutoff =0.5,
-                       plot.title = "ATRT-SHH: IPC.vs.NPC+OPC",add_gene_tags = F) + scale_color_brewer(palette = "OrRd", direction = -1)
-
-
-#Filter for highest SHH marker genes
-OPC.specific <-OPC.TFs[OPC.TFs$avg_log2FC < -0.5 & OPC.TFs$p_val_adj < 1e-10,]
-OPC.specific$gene <- motifs$symbol[motifs$motif %in% rownames(OPC.specific)]
-
-
-#
-#
-######### Supplementary Figure 6, Panel E #############
-#
-#
-#
-#Motifs against NPC and OPC both together
-OPC.and.NPC <- list(NPC.like = rownames(NPC.specific), OPC.like = rownames(OPC.specific))
-OPC.and.NPC.motifs <- intersect(rownames(NPC.specific),rownames(OPC.specific)) #Subset for motifs found in both
-
-overlap_genes <- motifs$symbol[motifs$motif %in% OPC.and.NPC.motifs] #Get TFs behind motif ID
-overlap_genes <- gsub("\\s*\\([^\\)]+\\)","",overlap_genes)
-Group_order <- list("Enrich.scores" = c("IPC.like","RG.like" ,"NPC.like","OPC.like","SHH.unspecified","Mesenchymal.like","CP.like","Cilia.like","MYC.TYR.unspecified"))
-
-# Expression Heatmap of the chromvar scores
-do_ExpressionHeatmap(ATRT, features = OPC.and.NPC.motifs, groups.order = Group_order,axis.text.x.angle = 90,
-                     group.by = "Enrich.scores", assay = "chromvar", enforce_symmetry = T, features.order = OPC.and.NPC.motifs, 
-                     diverging.palette = "PuOr",legend.title = "Chromvar score")
-
-# Expression heatmap of the TFs underlying the motif IDs
-do_ExpressionHeatmap(ATRT, features = overlap_genes, features.order = overlap_genes, groups.order = Group_order,axis.text.x.angle = 90,
-                     group.by = "Enrich.scores", assay = "RNA",slot = "scale.data", enforce_symmetry = T)
-
-
-
-
-#
-#
-######### Supplementary Figure 6, Panel B #############
-#
-#
-
-#Mesenchymal-like
-Mesenchymal.TFs <- FindMarkers(
-  ATRT,
-  ident.1 = "IPC.like",
-  ident.2 = "Mesenchymal.like",
-  logfc.threshold = 0,
-  min.pct = 0.1,
-  only.pos = F)
-
-#Make vulcanoplot of p-value and log2FC
-SCpubr::do_VolcanoPlot(sample = ATRT,
-                       de_genes = Mesenchymal.TFs,
-                       pval_cutoff = 1e-40,
-                       FC_cutoff = 5,
-                       plot.title = "IPC.vs.Mesenchymal",add_gene_tags = F) + scale_color_brewer(palette = "OrRd", direction = -1)
-
-
-#Filter for highest MYC marker genes
-Mesenchymal.specific <-Mesenchymal.TFs[Mesenchymal.TFs$avg_log2FC < -5 & Mesenchymal.TFs$p_val_adj < 1e-40,]
-Mesenchymal.specific$gene <- motifs$symbol[motifs$motif %in% rownames(Mesenchymal.specific)]
-
-
+#Check the code for Figure_S8 to have the additional filtering steps for MYC, OPC and NPC markers
 
 #Bind all motifs together into one list which will be used as input for the heatmap depicted in figure 2, panel D
 big_list.motifs <- list(SHH.NPC = rownames(NPC.specific),
